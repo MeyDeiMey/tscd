@@ -1,17 +1,21 @@
-# api/api.py
-
 from flask import Flask, request, jsonify
 import os
 import sys
+import boto3
+import json
 import networkx as nx
 
 # Asegurarse de que Python reconozca la carpeta raíz del proyecto
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.config import DATA_MART_PATH
 from graph.graph import Graph
 
 app = Flask(__name__)
+
+s3_client = boto3.client('s3')
+dynamodb = boto3.resource('dynamodb')
+BUCKET_NAME = "graphword-datamart-bucket"
+TABLE_NAME = "GraphNodes"
 
 graph = Graph()
 is_initialized = False
@@ -21,7 +25,7 @@ def index():
     return jsonify({
         "message": "Bienvenido a la API de Grafos",
         "endpoints": {
-            "POST /initialize": "Construye el grafo a partir de datamart/",
+            "POST /initialize": "Construye el grafo a partir de datos en S3",
             "GET /shortest-path?word1=...&word2=...": "Obtiene el camino más corto entre dos palabras",
             "GET /clusters": "Retorna los componentes conectados del grafo",
             "GET /high-connectivity?degree=2": "Retorna los nodos con grado >= 2"
@@ -32,39 +36,43 @@ def index():
 def initialize_graph():
     global is_initialized
     try:
-        all_words = set()
-        for file_name in os.listdir(DATA_MART_PATH):
-            if file_name.startswith("words_") and file_name.endswith(".txt"):
-                file_path = os.path.join(DATA_MART_PATH, file_name)
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    for line in f:
-                        w = line.strip()
-                        if w:
-                            all_words.add(w)
+        response = s3_client.list_objects_v2(Bucket=BUCKET_NAME, Prefix="words_")
+        files = response.get('Contents', [])
+        if not files:
+            return jsonify({"error": "No se encontraron archivos en el bucket S3."}), 400
 
-        if not all_words:
-            return jsonify({"error": "No se encontraron palabras en datamart."}), 400
+        all_words = set()
+        for file in files:
+            obj = s3_client.get_object(Bucket=BUCKET_NAME, Key=file['Key'])
+            content = obj['Body'].read().decode('utf-8')
+            for line in content.splitlines():
+                word = line.strip()
+                if word:
+                    all_words.add(word)
 
         # Construir el grafo
-        for w in all_words:
-            graph.add_node(w)
+        for word in all_words:
+            graph.add_node(word)
 
-        # Añadir edges
-        all_words_list = list(all_words)
-        total_edges = 0
-        for i in range(len(all_words_list)):
-            for j in range(i + 1, len(all_words_list)):
-                w1 = all_words_list[i]
-                w2 = all_words_list[j]
-                if graph.add_edge(w1, w2):
-                    total_edges += 1
+        # Crear relaciones entre nodos (opcional: ajustar lógica)
+        word_list = list(all_words)
+        for i in range(len(word_list)):
+            for j in range(i + 1, len(word_list)):
+                w1, w2 = word_list[i], word_list[j]
+                graph.add_edge(w1, w2)
+
+        # Persistir nodos y relaciones en DynamoDB
+        table = dynamodb.Table(TABLE_NAME)
+        for word in all_words:
+            connected_nodes = list(graph.neighbors(word))
+            table.put_item(Item={
+                'node': word,
+                'connected_nodes': json.dumps(connected_nodes)
+            })
 
         is_initialized = True
-        return jsonify({
-            "message": "Grafo construido a partir de archivos datamart",
-            "nodes": len(graph.graph.nodes),
-            "edges": len(graph.graph.edges)
-        })
+        return jsonify({"message": "Grafo inicializado desde S3.", "nodes": len(all_words)})
+
     except Exception as e:
         return jsonify({"error": f"Error al construir el grafo: {str(e)}"}), 500
 
@@ -107,16 +115,5 @@ def get_high_connectivity():
     except Exception as e:
         return jsonify({"error": f"Error al obtener nodos de alta conectividad: {str(e)}"}), 500
 
-@app.route("/routes", methods=["GET"])
-def list_routes():
-    import urllib
-    output = {}
-    for rule in app.url_map.iter_rules():
-        methods = ','.join(rule.methods)
-        url = urllib.parse.unquote(str(rule))
-        output[url] = methods
-    return jsonify(output)
-
-
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    app.run(debug=True, host="0.0.0.0", port=5001)
