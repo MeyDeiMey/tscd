@@ -6,3 +6,4 @@ terraform-compliance
 flask
 networkx
 requests
+matplotlib
