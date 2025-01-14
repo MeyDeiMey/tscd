@@ -24,7 +24,9 @@ jobs:
         
     - name: Run tests
       run: |
-        python -m pytest api.py
+        # Cambiar a la carpeta `app` si las pruebas están allí
+        cd app
+        python -m pytest api/api.py # Ruta a tus pruebas
 
   deploy:
     needs: test
