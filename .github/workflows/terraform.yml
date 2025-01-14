@@ -24,9 +24,10 @@ jobs:
         
     - name: Run tests
       run: |
-        # Cambiar a la carpeta `app` si las pruebas están allí
+        # Cambiar a la carpeta 'app' donde están tus pruebas
         cd app
-        python -m pytest api/api.py # Ruta a tus pruebas
+        # Ejecutar pytest en el directorio correcto
+        python -m pytest graph/graph_test.py # Ruta correcta de las pruebas
 
   deploy:
     needs: test
