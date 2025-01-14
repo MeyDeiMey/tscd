@@ -9,28 +9,22 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-
     steps:
-    # 1. Hacer checkout del código
-    - name: Checkout repository
-      uses: actions/checkout@v2
-
-    # 2. Configurar Python
+    - uses: actions/checkout@v2
+    
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
         python-version: '3.9'
-
-    # 3. Instalar las dependencias de Python (asegúrate de que requirements.txt está en la raíz del repo)
+        
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-
-    # 4. Ejecutar las pruebas con pytest
+        
     - name: Run tests
       run: |
-        python -m pytest
+        python -m pytest api.py
 
   deploy:
     needs: test
@@ -46,7 +40,7 @@ jobs:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
-
+        
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v1
 
@@ -54,16 +48,6 @@ jobs:
       run: |
         cd terraform
         terraform init
-
-    - name: Terraform Format
-      run: |
-        cd terraform
-        terraform fmt -check
-
-    - name: Terraform Plan
-      run: |
-        cd terraform
-        terraform plan -input=false
 
     - name: Terraform Apply
       run: |

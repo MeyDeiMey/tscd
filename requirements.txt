@@ -4,5 +4,5 @@ awscli
 python-terraform
 terraform-compliance
 flask
-aws
-
+networkx
+requests
