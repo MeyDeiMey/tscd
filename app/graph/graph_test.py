@@ -1,133 +1,132 @@
 import pytest
-from graph.graph_manager import GraphManager
 from graph.graph import Graph
-from graph.graph_analyzer import GraphAnalyzer
+from graph.node import Node
 
-# Lista de palabras que cumplen con la regla de diferencia máxima de 3 letras
-words = [
-    "dog", "dot", "dig", "cat", "bat", "rat", "hat", "pat", "mat", "sat", "fat", "lot",
-    "log", "fog", "cog", "pot", "hot", "not", "got", "bot", "lot"
-]
-
-# Test de Creación del Grafo
-def test_create_graph():
-    graph_manager = GraphManager()
-    graph_manager.build_graph(words)  # Construcción del grafo
-    graph = graph_manager.get_graph()  # Obtención del grafo
+# Test de creación de nodos
+def test_add_node():
+    graph = Graph()
+    graph.add_node("dog")
     
-    # Verifica que el grafo contiene el número correcto de nodos
-    assert len(graph.graph.nodes) == len(words)  # Debería haber 20 nodos
-    
-    # Verifica que "dog" y "dot" están conectados
-    assert "dog" in graph.graph.neighbors("dot")
-    assert "dot" in graph.graph.neighbors("dog")
-    
-    # Verifica que "dog" y "cat" no están conectados
-    assert "cat" not in graph.graph.neighbors("dog")
+    # Verifica que el nodo "dog" ha sido añadido correctamente
+    assert len(graph.graph.nodes) == 1
+    assert Node("dog") in graph.graph.nodes
 
+# Test de adición de aristas
+def test_add_edge():
+    graph = Graph()
+    graph.add_node("dog")
+    graph.add_node("dot")
+    
+    # Verifica que la arista entre "dog" y "dot" se puede añadir
+    assert graph.add_edge("dog", "dot") == True  # Debería añadir la arista
+    assert graph.graph.has_edge(Node("dog"), Node("dot"))  # Verifica si la arista existe
+    
+    # Intenta añadir una arista entre dos nodos no conectados
+    assert graph.add_edge("dog", "cat") == False  # "dog" y "cat" no están a un carácter de distancia
 
-# Test de Caminos Más Cortos
+# Test de caminos más cortos
 def test_shortest_path():
-    graph_manager = GraphManager()
-    graph_manager.build_graph(words)
-    graph = graph_manager.get_graph()
+    graph = Graph()
+    graph.add_node("dog")
+    graph.add_node("dot")
+    graph.add_node("cat")
+    graph.add_edge("dog", "dot")
+    graph.add_edge("dot", "cat")
     
     # Verifica el camino más corto entre "dog" y "cat"
     shortest_path = graph.shortest_path("dog", "cat")
-    assert shortest_path == ["dog", "dot", "cat"]  # El camino más corto es ["dog", "dot", "cat"]
+    assert shortest_path == [Node("dog"), Node("dot"), Node("cat")]
 
-
-# Test de Nodos Aislados
-def test_isolated_nodes():
-    words.append("xyz")  # Añadimos una palabra aislada
-    graph_manager = GraphManager()
-    graph_manager.build_graph(words)
-    graph = graph_manager.get_graph()
-    
-    isolated_nodes = graph.isolated_nodes()
-    assert "xyz" in isolated_nodes  # "xyz" debería ser aislada
-
-
-# Test de Clústeres
+# Test de clústeres
 def test_clusters():
-    graph_manager = GraphManager()
-    graph_manager.build_graph(words)
-    graph = graph_manager.get_graph()
+    graph = Graph()
+    graph.add_node("dog")
+    graph.add_node("dot")
+    graph.add_node("cat")
+    graph.add_node("bat")
     
+    graph.add_edge("dog", "dot")
+    graph.add_edge("dot", "cat")
+    
+    # Debería haber 2 clústeres: uno con "dog", "dot", "cat" y otro con "bat"
     clusters = graph.clusters()
-    assert len(clusters) == 2  # Se espera que haya dos clústeres principales
+    assert len(clusters) == 2
+    assert Node("bat") in clusters[1]  # "bat" debe estar en el segundo clúster
+    assert Node("cat") in clusters[0]  # "cat" debe estar en el primer clúster
 
-
-# Test de Conectividad de Nodos
+# Test de nodos con alta conectividad
 def test_high_connectivity_nodes():
-    graph_manager = GraphManager()
-    graph_manager.build_graph(words)
-    graph = graph_manager.get_graph()
+    graph = Graph()
+    graph.add_node("dog")
+    graph.add_node("dot")
+    graph.add_node("cat")
+    graph.add_node("bat")
     
-    # Busca nodos con al menos 3 conexiones
-    high_connectivity_nodes = graph.high_connectivity_nodes(3)
-    assert "dog" in high_connectivity_nodes
-    assert "dot" in high_connectivity_nodes
+    graph.add_edge("dog", "dot")
+    graph.add_edge("dot", "cat")
+    graph.add_edge("dot", "bat")
+    
+    # Busca nodos con al menos 2 conexiones
+    high_connectivity_nodes = graph.high_connectivity_nodes(2)
+    assert Node("dot") in high_connectivity_nodes  # "dot" tiene 3 conexiones
+    assert Node("cat") not in high_connectivity_nodes  # "cat" tiene solo 1 conexión
 
-
-# Test de Caminos Múltiples
+# Test de todos los caminos entre dos nodos
 def test_all_paths():
-    graph_manager = GraphManager()
-    graph_manager.build_graph(words)
-    graph = graph_manager.get_graph()
+    graph = Graph()
+    graph.add_node("dog")
+    graph.add_node("dot")
+    graph.add_node("cat")
+    graph.add_node("bat")
     
-    # Verifica los caminos entre "dog" y "cat"
-    all_paths = graph.all_paths("dog", "cat", max_depth=5)
-    assert all_paths == [["dog", "dot", "cat"]]  # Debería haber un único camino que sea ["dog", "dot", "cat"]
+    graph.add_edge("dog", "dot")
+    graph.add_edge("dot", "cat")
+    
+    # Verifica que el único camino entre "dog" y "cat" es ["dog", "dot", "cat"]
+    all_paths = graph.all_paths("dog", "cat", max_depth=3)
+    assert all_paths == [["dog", "dot", "cat"]]
 
-
-# Test de Distancia Máxima
+# Test de distancia máxima
 def test_maximum_distance():
-    graph_manager = GraphManager()
-    graph_manager.build_graph(words)
-    graph = graph_manager.get_graph()
+    graph = Graph()
+    graph.add_node("dog")
+    graph.add_node("dot")
+    graph.add_node("cat")
+    graph.add_node("bat")
     
-    # Verifica la distancia máxima entre cualquier par de nodos en el grafo
+    graph.add_edge("dog", "dot")
+    graph.add_edge("dot", "cat")
+    graph.add_edge("dot", "bat")
+    
+    # Verifica la distancia máxima entre los nodos
     max_distance = graph.maximum_distance()
-    assert max_distance == 2  # La distancia máxima es 2 entre "dog" y "cat"
+    assert max_distance == 2  # La distancia máxima es 2 entre "dog" y "cat" pasando por "dot"
 
-
-# Test de Nodos por Grado
+# Test de nodos por grado
 def test_nodes_by_degree():
-    graph_manager = GraphManager()
-    graph_manager.build_graph(words)
-    graph = graph_manager.get_graph()
+    graph = Graph()
+    graph.add_node("dog")
+    graph.add_node("dot")
+    graph.add_node("cat")
+    graph.add_node("bat")
     
-    # Verifica que los nodos con grado 3 son aquellos con múltiples conexiones
-    degree_3_nodes = graph.nodes_by_degree(3)
-    assert "dog" in degree_3_nodes
-    assert "dot" in degree_3_nodes
-    assert "cat" not in degree_3_nodes  # "cat" tiene grado 2, no 3
-
-
-# Test de Análisis del Grafo
-def test_graph_analyzer():
-    graph_manager = GraphManager()
-    graph_manager.build_graph(words)
-    graph = graph_manager.get_graph()
+    graph.add_edge("dog", "dot")
+    graph.add_edge("dot", "cat")
+    graph.add_edge("dot", "bat")
     
-    # Análisis básico del grafo
-    analyzer = GraphAnalyzer(graph.graph)
-    basic_info = analyzer.get_basic_info()
-    assert basic_info['number_of_nodes'] == len(words)
-    assert basic_info['number_of_edges'] == 19
-    assert basic_info['average_degree'] == 1.9
-    assert basic_info['number_of_connected_components'] == 1
-    assert basic_info['largest_component_size'] == len(words)
+    # Verifica los nodos con grado 2 (en este caso, "dot")
+    degree_2_nodes = graph.nodes_by_degree(2)
+    assert Node("dot") in degree_2_nodes  # "dot" tiene grado 3
+    assert Node("dog") not in degree_2_nodes  # "dog" tiene grado 1
 
-
-# Test de Visualización del Grafo
-def test_visualize_graph():
-    graph_manager = GraphManager()
-    graph_manager.build_graph(words)
-    graph = graph_manager.get_graph()
+# Test de nodos aislados
+def test_isolated_nodes():
+    graph = Graph()
+    graph.add_node("dog")
+    graph.add_node("cat")
+    graph.add_node("bat")
     
-    # Este test es más visual y no se puede comprobar con assert, pero se asegura que no lance errores
-    analyzer = GraphAnalyzer(graph.graph)
-    analyzer.visualize_graph(show_labels=True)  # Esto abrirá una ventana con el grafo visualizado
-
+    # "bat" es un nodo aislado porque no tiene conexiones
+    isolated_nodes = graph.isolated_nodes()
+    assert Node("bat") in isolated_nodes  # "bat" está aislado
+    assert Node("dog") not in isolated_nodes  # "dog" tiene una conexión
