@@ -1,0 +1,8 @@
+boto3
+pytest
+awscli
+python-terraform
+terraform-compliance
+flask
+aws
+
