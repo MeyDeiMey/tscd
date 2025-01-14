@@ -8,16 +8,8 @@ provider "aws" {
 variable "aws_access_key_id" {}
 variable "aws_secret_access_key" {}
 variable "aws_session_token" {}
-
-variable "key_name" {
-  description = "Nombre del Key Pair para SSH"
-  type        = string
-}
-
-variable "public_key_path" {
-  description = "Ruta a la llave pública SSH"
-  type        = string
-}
+variable "key_name"{}
+variable "key_path"{}
 
 resource "aws_key_pair" "deployer" {
   key_name   = var.key_name
